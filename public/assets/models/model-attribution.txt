@@ -1,0 +1,21 @@
+3D model attribution
+====================
+
+Title:    2021 BMW M4 Competition
+Author:   Ricy (@ngon_3d)
+Source:   https://sketchfab.com/3d-models/2021-bmw-m4-competition-d3f07b471d9f4a2c9a2acf79d88a3645
+License:  Creative Commons Attribution (CC BY 4.0)
+          https://creativecommons.org/licenses/by/4.0/
+
+Modifications applied for this project:
+  - Material adjustments: dark body color, increased clearcoat, reduced reflection intensity
+  - Headlight / DRL emissive material switched to red and runtime-modulated
+  - Re-centered and scaled at runtime via Three.js for web display
+  - Loaded with optional Draco decoding fallback
+
+Note on trademarks:
+  The model depicts a vehicle whose name and visual design are trademarks of
+  BMW AG / BMW M GmbH. The CC BY license covers the 3D asset under copyright
+  but does not grant any trademark, design, or patent rights. This project
+  uses the asset as an unofficial personal ambient experiment and is not
+  affiliated with or endorsed by BMW.

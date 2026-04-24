@@ -1,0 +1,24 @@
+Audio attribution
+=================
+
+engine_idle.mp3
+  Edited from: "AUDIO M4 WAV" by Andreabarata
+  Source:      https://freesound.org/people/Andreabarata/sounds/335345/
+               https://pixabay.com/sound-effects/audio-m4-wav-50124/
+  License:     Creative Commons 0 (CC0) on Freesound
+  Edits:       Mid-clip stable idle section retained; ~12ms boundary fades for
+               click-free looping.
+
+indicator_loop.mp3 / indicator_loop.ogg
+  Source:      "BMW Indicator" by The_Cri
+               https://freesound.org/people/The_Cri/sounds/545322/
+               https://pixabay.com/sound-effects/film-special-effects-bmw-indicator-63705/
+  License:     Creative Commons 0 (CC0) on Freesound; Pixabay Content License on Pixabay
+  Edits:       Cropped to an 8-tick stretch (~2.56s, ~320ms cadence) starting
+               from a clean silence boundary. Light gain boost. ~8ms boundary
+               fades. Re-encoded as MP3 (160kbps) and Ogg Vorbis (q5).
+
+Trademark note:
+  The original recordings contain the word "BMW" in their titles. This project
+  does not use that name in user-facing UI, page titles, or marketing copy;
+  attribution appears only here and in the Credits dialog.
