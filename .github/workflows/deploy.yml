@@ -48,15 +48,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: production
-      url: https://${{ secrets.DEPLOY_DOMAIN }}
-
     env:
       OCI_HOST: ${{ secrets.OCI_HOST }}
       OCI_USER: ${{ secrets.OCI_USER || 'ubuntu' }}
       DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
       DEPLOY_ROOT: /opt/bnbong/ambiw
+
+    environment:
+      name: production
+      url: https://${{ env.DEPLOY_DOMAIN }}
 
     steps:
       - name: Download dist artifact
