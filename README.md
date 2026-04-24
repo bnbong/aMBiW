@@ -34,6 +34,23 @@ It is a totally personal toy project, **not a commercial product**, and runs ent
 - Self-hosted [Draco](https://google.github.io/draco/) decoder under
   `public/draco/`
 
+## System requirements
+
+The site loads a 20 MB GLB, a ~735 KB Three.js bundle, and a few hundred KB of audio. Nothing about the payload is large by desktop standards, but the browser's WebGL implementation matters more than raw device specs. 
+
+On page load the app runs a small probe (`src/utils/detectWebGL.ts`) that calls the exact WebGL call Three.js initialises with; if it fails, the page stays up in **audio-only mode** — the engine idle and turn-signal loops still play, only the 3D scene is hidden.
+
+### Full 3D scene
+
+| Platform                                                           | Status            | Notes                                                                                                                                                                                              |
+| ------------------------------------------------------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desktop Chrome / Edge / Firefox (2022+) on macOS / Windows / Linux | ✅ Works           | Primary target. Any dGPU or integrated GPU from the last ~6 years is comfortably enough.                                                                                                           |
+| Desktop Safari 16+ on macOS                                        | ✅ Works           | Same WebGL2 backend as Chromium on Apple Silicon.                                                                                                                                                  |
+| Android Chrome / Chromium (2020+ flagships and tablets)            | ✅ Works           | Confirmed on Galaxy Tab S7+ (Snapdragon 865+). Android Chromium ships its own ANGLE-backed WebGL stack that isn't subject to the iOS WebKit quirks below.                                          |
+| iPadOS (Safari, Chrome iOS, Firefox iOS)                           | ✅ Works in most cases | Confirmed on iPad Air 4 (Chrome iOS). All iOS/iPadOS browsers share WebKit under the hood, so browser choice doesn't change behaviour much.                                                        |
+| iPhone Safari / Chrome iOS                                         | 🟡 Usually works, some devices fall back | Same WebKit stack as iPadOS, but some iPhones hit `gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT) === null` and auto-switch to audio-only. Known triggers listed below.               |
+| Low-RAM (≤ 3 GB) Android devices                                   | 🟡 May fall back    | GLB parse peaks around ~100–200 MB transient RAM; older devices may fail the probe under memory pressure.                                                                                          |
+
 ## Local development
 
 ```bash

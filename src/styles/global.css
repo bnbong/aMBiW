@@ -48,6 +48,41 @@ button {
   inset: 0;
 }
 
+/* Shown in place of the WebGL <Canvas> when detectWebGL() reports the device
+   cannot render a Three.js scene. Keeps the page visually coherent and the
+   audio controls fully usable. */
+.audio-only-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 50% 55%,
+      rgba(90, 12, 18, 0.38) 0%,
+      rgba(12, 12, 16, 0.6) 38%,
+      #040406 72%
+    ),
+    linear-gradient(180deg, #060608 0%, #020204 100%);
+}
+
+.audio-only-backdrop::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  width: min(68vw, 420px);
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 60, 80, 0.35) 40%,
+    rgba(255, 60, 80, 0.6) 50%,
+    rgba(255, 60, 80, 0.35) 60%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgba(255, 60, 80, 0.25);
+}
+
 .brand {
   position: absolute;
   top: max(env(safe-area-inset-top, 0px), 16px);

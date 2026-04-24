@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GarageScene } from "./components/GarageScene";
 import { ControlBar } from "./components/ControlBar";
 import { CreditsModal } from "./components/CreditsModal";
 import { SceneErrorBoundary } from "./components/SceneErrorBoundary";
 import { useAudioLoop } from "./hooks/useAudioLoop";
 import { useReducedMotion } from "./hooks/useReducedMotion";
+import { detectWebGL } from "./utils/detectWebGL";
 
 const MODEL_URL = "/assets/models/m4-competition.glb";
 const ENGINE_AUDIO = "/assets/audio/engine_idle.mp3";
@@ -35,11 +36,21 @@ export default function App() {
     fadeMs: 250,
   });
 
+  // Run the WebGL probe once, synchronously, before we ever ask React to
+  // mount the 3D <Canvas>. On mobile Safari / low-end devices where the
+  // context is handed back but calls like getShaderPrecisionFormat return
+  // null (Three.js then crashes reading `.precision`), we skip the scene
+  // entirely instead of letting the boundary eat a dead render loop.
+  const webglStatus = useMemo(() => detectWebGL(), []);
+  const webglOk = webglStatus.ok;
+
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [modelStatus, setModelStatus] = useState<
     "loading" | "ready" | "error"
-  >("loading");
-  const [modelErrorDetail, setModelErrorDetail] = useState<string | null>(null);
+  >(webglOk ? "loading" : "error");
+  const [modelErrorDetail, setModelErrorDetail] = useState<string | null>(
+    webglOk ? null : `WebGL unavailable: ${webglStatus.reason}`
+  );
   const [audioBanner, setAudioBanner] = useState<string | null>(null);
   const [indicatorStartedAt, setIndicatorStartedAt] = useState<number | null>(
     null
@@ -107,22 +118,26 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="canvas-host">
-        <SceneErrorBoundary
-          onError={(err) => {
-            setModelStatus("error");
-            setModelErrorDetail(`${err.name}: ${err.message}`);
-          }}
-        >
-          <GarageScene
-            modelUrl={MODEL_URL}
-            engineOn={engine.isPlaying}
-            indicatorOn={indicator.isPlaying}
-            indicatorStartedAt={indicatorStartedAt}
-            rotationSpeed={rotationSpeed}
-            onModelStatus={setModelStatus}
-            onModelError={setModelErrorDetail}
-          />
-        </SceneErrorBoundary>
+        {webglOk ? (
+          <SceneErrorBoundary
+            onError={(err) => {
+              setModelStatus("error");
+              setModelErrorDetail(`${err.name}: ${err.message}`);
+            }}
+          >
+            <GarageScene
+              modelUrl={MODEL_URL}
+              engineOn={engine.isPlaying}
+              indicatorOn={indicator.isPlaying}
+              indicatorStartedAt={indicatorStartedAt}
+              rotationSpeed={rotationSpeed}
+              onModelStatus={setModelStatus}
+              onModelError={setModelErrorDetail}
+            />
+          </SceneErrorBoundary>
+        ) : (
+          <div className="audio-only-backdrop" aria-hidden="true" />
+        )}
       </div>
 
       <div className="brand">
@@ -133,7 +148,11 @@ export default function App() {
       {audioBanner && <div className="notice">{audioBanner}</div>}
       {modelStatus === "error" && (
         <div className="notice" style={{ top: 60 }}>
-          <div>Car model unavailable — showing simplified preview.</div>
+          <div>
+            {webglOk
+              ? "Car model unavailable — showing simplified preview."
+              : "3D scene disabled on this device — audio-only mode."}
+          </div>
           {modelErrorDetail && (
             <div
               style={{

@@ -65,9 +65,9 @@ function formatLoadError(err: unknown): string {
   }
 }
 
-// Reframe the camera based on viewport aspect. Wide viewports get a centered,
-// eye-level front view; portrait/narrow viewports pull back and use a slightly
-// wider FOV so the whole car silhouette stays inside the frame.
+// Reframe the camera based on viewport aspect. Keep every breakpoint on the
+// same centered, eye-level front axis; narrow screens use a wider FOV so the
+// car remains a dramatic close-up instead of shrinking into the distance.
 function ResponsiveCamera({
   controlsTargetY,
 }: {
@@ -78,13 +78,14 @@ function ResponsiveCamera({
     const aspect = size.width / Math.max(1, size.height);
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     if (aspect < 0.85) {
-      // portrait / narrow
-      camera.position.set(3.4, 1.05, 7.6);
-      camera.fov = 44;
+      // portrait / narrow: keep the desktop front-view mood, but compensate
+      // for the narrow viewport with a wider lens instead of pulling away.
+      camera.position.set(0, 0.32, 4.35);
+      camera.fov = 54;
     } else if (aspect < 1.4) {
       // squareish / tablet
-      camera.position.set(4.4, 1.0, 6.2);
-      camera.fov = 40;
+      camera.position.set(0, 0.34, 4.35);
+      camera.fov = 32;
     } else {
       // desktop wide: horizontal front view, close enough to nearly fill frame.
       camera.position.set(0, 0.36, 4.35);
