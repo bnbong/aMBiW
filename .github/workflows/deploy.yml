@@ -110,6 +110,10 @@ jobs:
       - name: Probe deployed site
         run: |
           set -euo pipefail
-          # Allow Cloudflare a brief moment to drop the previous /index.html.
           sleep 3
-          curl -fsSI "https://$DEPLOY_DOMAIN/" | head -n 10
+          # Cloudflare challenges CI traffic; probe origin directly.
+          # -k tolerates origin cert mismatch (cert may still be .xyz/non-wildcard).
+          curl -fsSI \
+            --resolve "$DEPLOY_DOMAIN:443:$OCI_HOST" \
+            -k \
+            "https://$DEPLOY_DOMAIN/" | head -n 10
