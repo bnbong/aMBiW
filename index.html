@@ -14,6 +14,10 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- data-cfasync="false" tells Cloudflare Rocket Loader to leave this
+         script alone. Rocket Loader rewrites <script type="module"> in a way
+         that breaks Vite's ES module entry, but only on mobile traffic in
+         some configurations. Safe no-op if Rocket Loader is disabled. -->
+    <script type="module" src="/src/main.tsx" data-cfasync="false"></script>
   </body>
 </html>

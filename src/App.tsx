@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GarageScene } from "./components/GarageScene";
 import { ControlBar } from "./components/ControlBar";
 import { CreditsModal } from "./components/CreditsModal";
+import { SceneErrorBoundary } from "./components/SceneErrorBoundary";
 import { useAudioLoop } from "./hooks/useAudioLoop";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 
@@ -105,14 +106,18 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="canvas-host">
-        <GarageScene
-          modelUrl={MODEL_URL}
-          engineOn={engine.isPlaying}
-          indicatorOn={indicator.isPlaying}
-          indicatorStartedAt={indicatorStartedAt}
-          rotationSpeed={rotationSpeed}
-          onModelStatus={setModelStatus}
-        />
+        <SceneErrorBoundary
+          onError={() => setModelStatus("error")}
+        >
+          <GarageScene
+            modelUrl={MODEL_URL}
+            engineOn={engine.isPlaying}
+            indicatorOn={indicator.isPlaying}
+            indicatorStartedAt={indicatorStartedAt}
+            rotationSpeed={rotationSpeed}
+            onModelStatus={setModelStatus}
+          />
+        </SceneErrorBoundary>
       </div>
 
       <div className="brand">

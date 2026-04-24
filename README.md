@@ -22,7 +22,7 @@ It is a totally personal toy project, **not a commercial product**, and runs ent
 
 ## Live demo
 
-url link will be added later
+[ambiw.bnbong.com](https://ambiw.bnbong.com)
 
 ## Tech stack
 
@@ -73,7 +73,7 @@ under `public/`, so a fresh clone runs end-to-end without any manual download st
 
 ## License
 
-[MIT License](LICENSE).
+[MIT License(With CC BY 4.0)](LICENSE)
 
 ## Acknowledgements
 
