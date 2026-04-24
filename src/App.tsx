@@ -39,6 +39,7 @@ export default function App() {
   const [modelStatus, setModelStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
+  const [modelErrorDetail, setModelErrorDetail] = useState<string | null>(null);
   const [audioBanner, setAudioBanner] = useState<string | null>(null);
   const [indicatorStartedAt, setIndicatorStartedAt] = useState<number | null>(
     null
@@ -107,7 +108,10 @@ export default function App() {
     <div className="app-shell">
       <div className="canvas-host">
         <SceneErrorBoundary
-          onError={() => setModelStatus("error")}
+          onError={(err) => {
+            setModelStatus("error");
+            setModelErrorDetail(`${err.name}: ${err.message}`);
+          }}
         >
           <GarageScene
             modelUrl={MODEL_URL}
@@ -116,6 +120,7 @@ export default function App() {
             indicatorStartedAt={indicatorStartedAt}
             rotationSpeed={rotationSpeed}
             onModelStatus={setModelStatus}
+            onModelError={setModelErrorDetail}
           />
         </SceneErrorBoundary>
       </div>
@@ -128,7 +133,21 @@ export default function App() {
       {audioBanner && <div className="notice">{audioBanner}</div>}
       {modelStatus === "error" && (
         <div className="notice" style={{ top: 60 }}>
-          Car model unavailable — showing simplified preview.
+          <div>Car model unavailable — showing simplified preview.</div>
+          {modelErrorDetail && (
+            <div
+              style={{
+                marginTop: "4px",
+                fontSize: "10px",
+                opacity: 0.75,
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Menlo, monospace",
+                wordBreak: "break-word",
+              }}
+            >
+              {modelErrorDetail}
+            </div>
+          )}
         </div>
       )}
 

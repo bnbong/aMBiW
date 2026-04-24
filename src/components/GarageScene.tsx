@@ -24,10 +24,15 @@ type GarageSceneProps = {
   indicatorStartedAt: number | null;
   rotationSpeed: number;
   onModelStatus: (status: "loading" | "ready" | "error") => void;
+  onModelError?: (detail: string) => void;
 };
 
 class ModelErrorBoundary extends Component<
-  { onError: () => void; children: ReactNode; fallback: ReactNode },
+  {
+    onError: (err: unknown) => void;
+    children: ReactNode;
+    fallback: ReactNode;
+  },
   { hasError: boolean }
 > {
   state = { hasError: false };
@@ -38,12 +43,25 @@ class ModelErrorBoundary extends Component<
 
   componentDidCatch(err: unknown) {
     console.warn("CarModel failed to load, using fallback:", err);
-    this.props.onError();
+    this.props.onError(err);
   }
 
   render() {
     if (this.state.hasError) return this.props.fallback;
     return this.props.children;
+  }
+}
+
+function formatLoadError(err: unknown): string {
+  if (err instanceof Error) {
+    const msg = err.message || err.name;
+    return msg.length > 220 ? `${msg.slice(0, 220)}…` : msg;
+  }
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err).slice(0, 220);
+  } catch {
+    return String(err);
   }
 }
 
@@ -87,6 +105,7 @@ export function GarageScene({
   indicatorStartedAt,
   rotationSpeed,
   onModelStatus,
+  onModelError,
 }: GarageSceneProps) {
   const [dpr, setDpr] = useState<[number, number]>([1, 1.5]);
   const [useFallback, setUseFallback] = useState(false);
@@ -149,7 +168,10 @@ export function GarageScene({
         }
       >
         <ModelErrorBoundary
-          onError={() => setUseFallback(true)}
+          onError={(err) => {
+            setUseFallback(true);
+            onModelError?.(formatLoadError(err));
+          }}
           fallback={
             <FallbackCar
               engineOn={engineOn}
