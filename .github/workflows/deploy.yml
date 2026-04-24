@@ -56,8 +56,7 @@ jobs:
       OCI_HOST: ${{ secrets.OCI_HOST }}
       OCI_USER: ${{ secrets.OCI_USER || 'ubuntu' }}
       DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
-      # Parent directory on the host. Contains releases/ and the current symlink.
-      DEPLOY_ROOT: /srv/ambiw
+      DEPLOY_ROOT: /opt/bnbong/ambiw
 
     steps:
       - name: Download dist artifact
@@ -100,7 +99,7 @@ jobs:
         run: |
           ssh "$OCI_USER@$OCI_HOST" "set -euo pipefail; \
             ln -snfT 'releases/${{ steps.release.outputs.name }}' '$DEPLOY_ROOT/current'; \
-            sudo systemctl reload caddy"
+            sudo docker exec vm1-nginx nginx -s reload"
 
       - name: Prune old releases (keep last 5)
         run: |
