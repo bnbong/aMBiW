@@ -1,9 +1,5 @@
 <p align="center">
-  <img src=".github/embeew_banner.png" alt="EmBee_W" />
-</p>
-
-<p align="center">
-  <img src=".github/embeew_logo.png" alt="EmBee_W" width="420" />
+  <img src=".github/ambiw.png" alt="aMBiW"/>
 </p>
 
 <p align="center">

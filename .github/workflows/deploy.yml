@@ -1,0 +1,116 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Serialize deploys: never run two at once against the same host.
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to OCI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://${{ secrets.DEPLOY_DOMAIN }}
+
+    env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER || 'ubuntu' }}
+      DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+      # Parent directory on the host. Contains releases/ and the current symlink.
+      DEPLOY_ROOT: /srv/ambiw
+
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist
+
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+
+      - name: Trust OCI host key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$OCI_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Compute release name
+        id: release
+        run: |
+          NAME="$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::7}"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "Release: $NAME"
+
+      - name: Prepare release directory on host
+        run: |
+          ssh "$OCI_USER@$OCI_HOST" \
+            "mkdir -p '$DEPLOY_ROOT/releases/${{ steps.release.outputs.name }}'"
+
+      - name: Rsync dist to release directory
+        run: |
+          rsync -aH --delete \
+            --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+            dist/ \
+            "$OCI_USER@$OCI_HOST:$DEPLOY_ROOT/releases/${{ steps.release.outputs.name }}/"
+
+      - name: Atomic publish (swap symlink + reload Caddy)
+        run: |
+          ssh "$OCI_USER@$OCI_HOST" "set -euo pipefail; \
+            ln -snfT 'releases/${{ steps.release.outputs.name }}' '$DEPLOY_ROOT/current'; \
+            sudo systemctl reload caddy"
+
+      - name: Prune old releases (keep last 5)
+        run: |
+          ssh "$OCI_USER@$OCI_HOST" "set -euo pipefail; \
+            cd '$DEPLOY_ROOT/releases'; \
+            ls -1tr | head -n -5 | xargs -r -I {} rm -rf -- {}"
+
+      - name: Probe deployed site
+        run: |
+          set -euo pipefail
+          # Allow Cloudflare a brief moment to drop the previous /index.html.
+          sleep 3
+          curl -fsSI "https://$DEPLOY_DOMAIN/" | head -n 10

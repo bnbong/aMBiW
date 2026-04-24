@@ -116,7 +116,7 @@ export default function App() {
       </div>
 
       <div className="brand">
-        EmBee_W
+        aMBiW
         <span className="tag">Ambient · 차멍</span>
       </div>
 
