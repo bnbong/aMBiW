@@ -1,15 +1,21 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { DEFAULT_LIGHTING, type LightingSettings } from "../config/lighting";
+
+type CarLightingSettings = LightingSettings["car"];
 
 type FallbackCarProps = {
   engineOn: boolean;
   indicatorOn: boolean;
   indicatorStartedAt: number | null;
   rotationSpeed: number;
+  carLighting: CarLightingSettings;
 };
 
-const HEADLIGHT_EMISSIVE = new THREE.Color(0xff2030);
+const DEFAULT_HEADLIGHT_EMISSIVE = new THREE.Color(
+  DEFAULT_LIGHTING.car.runningColor
+);
 const INDICATOR_FIRST_CLICK_OFFSET = 0.307;
 const INDICATOR_CLICK_PERIOD = 0.32;
 
@@ -20,6 +26,7 @@ export function FallbackCar({
   indicatorOn,
   indicatorStartedAt,
   rotationSpeed,
+  carLighting,
 }: FallbackCarProps) {
   const groupRef = useRef<THREE.Group>(null);
   const headlightMatRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -37,6 +44,14 @@ export function FallbackCar({
       }),
     []
   );
+  const headlightColor = useMemo(
+    () => new THREE.Color(carLighting.runningColor),
+    [carLighting.runningColor]
+  );
+  const indicatorColor = useMemo(
+    () => new THREE.Color(carLighting.indicatorColor),
+    [carLighting.indicatorColor]
+  );
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -44,7 +59,9 @@ export function FallbackCar({
       groupRef.current.rotation.y += rotationSpeed * dt;
     }
 
-    targetIntensityRef.current = engineOn ? 1.4 : 0;
+    targetIntensityRef.current = engineOn
+      ? carLighting.runningIntensityOn * 0.44
+      : carLighting.runningIntensityOff * 0.15;
     const base = THREE.MathUtils.damp(
       currentIntensityRef.current,
       targetIntensityRef.current,
@@ -64,6 +81,10 @@ export function FallbackCar({
     }
 
     if (headlightMatRef.current) {
+      headlightMatRef.current.color.copy(headlightColor).multiplyScalar(0.18);
+      headlightMatRef.current.emissive.copy(
+        pulse > 0.01 ? indicatorColor : headlightColor
+      );
       headlightMatRef.current.emissiveIntensity = Math.max(
         base,
         pulse + base * 0.45
@@ -87,7 +108,7 @@ export function FallbackCar({
         <meshStandardMaterial
           ref={headlightMatRef}
           color={new THREE.Color(0x140404)}
-          emissive={HEADLIGHT_EMISSIVE}
+          emissive={DEFAULT_HEADLIGHT_EMISSIVE}
           emissiveIntensity={0}
           metalness={0.1}
           roughness={0.35}

@@ -3,6 +3,9 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { DEFAULT_LIGHTING, type LightingSettings } from "../config/lighting";
+
+type CarLightingSettings = LightingSettings["car"];
 
 type CarModelProps = {
   url: string;
@@ -10,19 +13,20 @@ type CarModelProps = {
   indicatorOn: boolean;
   indicatorStartedAt: number | null;
   rotationSpeed: number;
+  carLighting: CarLightingSettings;
   onLoaded?: () => void;
 };
 
 // Deep automotive lamp red. Keep it close to the stock rear lamps rather than
 // a neon UI red so it sits naturally on the black body.
-const RUNNING_LIGHT_COLOR = new THREE.Color(0xa40012);
-const INDICATOR_LIGHT_COLOR = new THREE.Color(0xff7a18);
+const DEFAULT_RUNNING_LIGHT_COLOR = new THREE.Color(
+  DEFAULT_LIGHTING.car.runningColor
+);
 
 // Engine-state intensities for the running lights (front + rear). Never goes
 // fully to 0 when the engine is "off" so the parked car still reads as a
 // dark-but-alive shape, the way a real garaged car shows its standlight.
-const RUNNING_INTENSITY_OFF = 0.32;
-const RUNNING_INTENSITY_ON = 3.2;
+const RUNNING_INTENSITY_OFF = DEFAULT_LIGHTING.car.runningIntensityOff;
 const RUNNING_DAMP_RATE = 3.5;
 const INDICATOR_FLASH_PERIOD = 0.84;
 const INDICATOR_DUTY = 0.55;
@@ -66,15 +70,14 @@ function classifyMesh(name: string): MeshClass {
   if (lower.startsWith("body_")) return "body";
   if (lower.startsWith("headglass")) return "head_glass";
   if (lower.startsWith("headlight_")) {
-    // #701/#707/#708 are the red running-light emitters. #706 and headglass
-    // are the lens/cover surfaces and must stay neutral.
-    if (matNum === 701 || matNum === 707 || matNum === 708)
-      return "front_emissive";
+    // The projector blocks are not the red DRL shape in the current art
+    // direction. Keep them neutral so the angular glsslight strip carries
+    // the visible red signature.
     return "head_lens";
   }
 
   if (lower.startsWith("glsslight")) {
-    // Material #161 is the LED itself (brightest). #718 is the
+    // Material #161 is the angular LED strip itself. #718 is the
     // semi-transparent diffuser cover. #716/#717 are housing back/sides — we
     // give them a faint spill so the entire strip reads as one glowing piece
     // instead of a hot pinpoint floating in the dark headlight bowl.
@@ -256,14 +259,14 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
 
       switch (cls) {
         case "body": {
-          m.color = new THREE.Color(0x05050a);
+          m.color = new THREE.Color(0x050507);
           m.metalness = 0.92;
-          m.roughness = 0.34;
+          m.roughness = 0.36;
           if (m instanceof THREE.MeshPhysicalMaterial) {
             m.clearcoat = 1.0;
-            m.clearcoatRoughness = 0.16;
+            m.clearcoatRoughness = 0.14;
           }
-          m.envMapIntensity = 0.45;
+          m.envMapIntensity = 0.2;
           m.emissive = new THREE.Color(0x000000);
           m.emissiveIntensity = 0;
           break;
@@ -286,8 +289,8 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
             : null;
           m.map = null;
           m.emissiveMap = null;
-          m.color = RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8);
-          m.emissive = RUNNING_LIGHT_COLOR.clone();
+          m.color = DEFAULT_RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8);
+          m.emissive = DEFAULT_RUNNING_LIGHT_COLOR.clone();
           m.emissiveIntensity = RUNNING_INTENSITY_OFF;
           m.metalness = 0.02;
           m.roughness = 0.2;
@@ -299,8 +302,9 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
             originalGeometry.dispose();
 
             const indicatorMaterial = m.clone();
-            indicatorMaterial.color = RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8);
-            indicatorMaterial.emissive = RUNNING_LIGHT_COLOR.clone();
+            indicatorMaterial.color = DEFAULT_RUNNING_LIGHT_COLOR.clone()
+              .multiplyScalar(0.8);
+            indicatorMaterial.emissive = DEFAULT_RUNNING_LIGHT_COLOR.clone();
             indicatorMaterial.emissiveIntensity = RUNNING_INTENSITY_OFF;
             indicatorMaterial.toneMapped = false;
 
@@ -322,7 +326,7 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
               mat: indicatorMaterial,
               intensityScale: 4.8,
               alsoRunning: true,
-              offColor: RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8),
+              offColor: DEFAULT_RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8),
             });
           }
           lights.push({
@@ -336,8 +340,8 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
           // the amber indicator pulse. This avoids any floating overlay.
           m.map = null;
           m.emissiveMap = null;
-          m.color = RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8);
-          m.emissive = RUNNING_LIGHT_COLOR.clone();
+          m.color = DEFAULT_RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8);
+          m.emissive = DEFAULT_RUNNING_LIGHT_COLOR.clone();
           m.emissiveIntensity = RUNNING_INTENSITY_OFF;
           m.metalness = 0.02;
           m.roughness = 0.2;
@@ -351,7 +355,7 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
             mat: m,
             intensityScale: 4.8,
             alsoRunning: true,
-            offColor: RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8),
+            offColor: DEFAULT_RUNNING_LIGHT_COLOR.clone().multiplyScalar(0.8),
           });
           break;
         }
@@ -372,7 +376,7 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
           m.color = m.color
             ? m.color.clone().multiplyScalar(0.7)
             : new THREE.Color(0x300004);
-          m.emissive = RUNNING_LIGHT_COLOR.clone();
+          m.emissive = DEFAULT_RUNNING_LIGHT_COLOR.clone();
           m.emissiveIntensity = RUNNING_INTENSITY_OFF;
           m.metalness = 0.05;
           m.roughness = 0.32;
@@ -387,7 +391,7 @@ function setupGltfMaterials(root: THREE.Object3D): MaterialSetup {
           m.color = m.color
             ? m.color.clone().multiplyScalar(0.65)
             : new THREE.Color(0x1a0002);
-          m.emissive = RUNNING_LIGHT_COLOR.clone();
+          m.emissive = DEFAULT_RUNNING_LIGHT_COLOR.clone();
           m.emissiveIntensity = RUNNING_INTENSITY_OFF * 0.6;
           m.metalness = 0.06;
           m.roughness = 0.4;
@@ -480,6 +484,7 @@ export function CarModel({
   indicatorOn,
   indicatorStartedAt,
   rotationSpeed,
+  carLighting,
   onLoaded,
 }: CarModelProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -487,7 +492,14 @@ export function CarModel({
   const runningIntensityRef = useRef(RUNNING_INTENSITY_OFF);
   const indicatorVisibleRef = useRef(0);
   const loadedNotifiedRef = useRef(false);
-
+  const runningLightColor = useMemo(
+    () => new THREE.Color(carLighting.runningColor),
+    [carLighting.runningColor]
+  );
+  const indicatorLightColor = useMemo(
+    () => new THREE.Color(carLighting.indicatorColor),
+    [carLighting.indicatorColor]
+  );
   const gltf = useLoader(GLTFLoader, url, (loader) => {
     (loader as GLTFLoader).setDRACOLoader(dracoLoader);
   }) as GLTF;
@@ -537,8 +549,8 @@ export function CarModel({
     }
 
     const runningTarget = engineOn
-      ? RUNNING_INTENSITY_ON
-      : RUNNING_INTENSITY_OFF;
+      ? carLighting.runningIntensityOn
+      : carLighting.runningIntensityOff;
     runningIntensityRef.current = THREE.MathUtils.damp(
       runningIntensityRef.current,
       runningTarget,
@@ -566,15 +578,16 @@ export function CarModel({
 
     for (let i = 0; i < lights.length; i++) {
       const target = lights[i];
-      target.mat.emissive.copy(RUNNING_LIGHT_COLOR);
+      target.mat.color.copy(runningLightColor).multiplyScalar(0.8);
+      target.mat.emissive.copy(runningLightColor);
       target.mat.emissiveIntensity = runningIntensity * target.intensityScale;
     }
 
     for (let i = 0; i < indicators.length; i++) {
       const target = indicators[i];
       if (indicatorVisible > 0.01) {
-        target.mat.color.copy(INDICATOR_LIGHT_COLOR).multiplyScalar(0.85);
-        target.mat.emissive.copy(INDICATOR_LIGHT_COLOR);
+        target.mat.color.copy(indicatorLightColor).multiplyScalar(0.85);
+        target.mat.emissive.copy(indicatorLightColor);
         target.mat.emissiveIntensity =
           indicatorVisible * target.intensityScale;
       } else if (!target.alsoRunning) {
